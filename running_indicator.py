@@ -10,8 +10,6 @@ import math
 import numpy as np
 import copy
 
-
-
 apiPath = "https://www.strava.com/api/v3/activities/"
 
 # todo:最新のアクティビティIDを取得できるように書き換える
@@ -23,7 +21,7 @@ activity_id = "2969365131"
 # またはdotenvなどから
 
 # todo:上記読み込んだアクセストークンに書き換える
-strava_access_token = "xxxxxxxxxxx"
+strava_access_token = "03380dd4e4099c24b89894ca8151471cfac87be2"
 headers = {'Authorization': 'Bearer {}'.format(strava_access_token)}
 
 # activityデータを取得する
@@ -70,24 +68,55 @@ for i, split_info in enumerate(splits_metric):
 print(total_time_list)
 
 # todo: 以下定数は外だしにしたい
-DISPLAY_TIME = 4 # 4秒間表示する
-TIME_SPEED = 6 # 何倍速にするか。
+DISPLAY_TIME = 10 # 10秒間表示する
+TIME_SPEED = 6  # 何倍速にするか。
+FLASH_FREQ = 0.25  # 1秒間に何回点滅するか
+interval = 1 / FLASH_FREQ # 点滅間隔(1回点滅するのにかかる時間)
 center_time_text = [((split_info['total_time']/TIME_SPEED, split_info['total_time']/TIME_SPEED + DISPLAY_TIME), change_time_format(str(split_info['average_speed']))) 
                          for split_info in splits_metric]
 
 print(center_time_text)
 
+center_time_text_flashing = []
+for center_time_text_item in center_time_text:
+    prev_time_text = ((center_time_text_item[0][0],center_time_text_item[0][0] + interval / 2), center_time_text_item[1])
+    center_time_text_flashing.append(prev_time_text)
+    t = 0
+    # t = center_time_text_item[0][0]
+    # prev_time_text = center_time_text[0]
+    while t <= FLASH_FREQ * TIME_SPEED:
+        time_text_flashing_part = ((prev_time_text[0][0] + interval, prev_time_text[0][1] + interval), prev_time_text[1])
+        center_time_text_flashing.append(time_text_flashing_part)
+        prev_time_text = copy.deepcopy(time_text_flashing_part)
+        # prev_time_text = time_text_flashing_part  
+        t = t + 1 
+
+center_time_text = center_time_text_flashing
+print("center_time_text(点滅後)")
+print(center_time_text)
+
+# 中央ラップタイム表示の間は、空の表示をする必要がある
 complemented_time_text = [((0,center_time_text[0][0][0]), ' ')]
 complemented_time_text.append(center_time_text[0])
 prev_time_text = center_time_text[0]
-for time_text in center_time_text:
+for time_text in center_time_text[1:]:
     complemented_time_text.append(((prev_time_text[0][1], time_text[0][0]),' '))
     complemented_time_text.append(time_text)
+    # prev_time_text = time_text
     prev_time_text = copy.deepcopy(time_text)
 
+#complemented_time_text_flashing = []
+#for time_text_item in complemented_time_text:
+
+
 # center_time_text.pop()
+print("最終的な値")
+print(complemented_time_text)
+# shit code below
+complemented_time_text = complemented_time_text[:-3]
+print("後半の一部を除外")
 print(complemented_time_text)
 annotated_clips = [annotate(video.subclip(from_t, to_t), txt) for (from_t, to_t), txt in complemented_time_text]#動画と字幕を繋げる処理
 final_clip = editor.concatenate_videoclips(annotated_clips)
-# final_clip.write_videofile("movie_withSubtitle.mp4")
-final_clip.write_videofile("testVideo.mp4", fps=1)
+final_clip.write_videofile("movie_withSubtitle.mp4")
+#final_clip.write_videofile("testVideo.mp4", fps=1)
