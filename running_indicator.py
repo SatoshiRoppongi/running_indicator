@@ -9,20 +9,37 @@ import matplotlib.pyplot as plt
 import math
 import numpy as np
 import copy
+import shelve
+import settings
+
+# カレントディレクトリにあるmy_tokensをオープンする
+oauth_info = shelve.open('my_tokens', writeback=True)
+
+# アクセストークンの有効期限がきれていたら、リフレッシュトークンを使って
+# 新たなアクセストークン・リフレッシュトークンを取得する
+if oauth_info['expires_at'] < datetime.datetime.now().timestamp():
+    authdata = {
+        'client_id': settings.CLIENT_ID,
+        'client_secret': settings.CLIENT_SECRET,
+        'grant_type': 'refresh_token',
+        'refresh_token': oauth_info['refresh_token']
+    }
+    response = requests.post('https://www.strava.com/api/v3/oauth/token', data=authdata)
+    # 各種情報を更新する
+    oauth_info['access_token'] = response['access_token']
+    oauth_info['refresh_token'] = response['refresh_token']
+    oauth_info['expires_at'] = response['expires_at']
+    
+strava_access_token = oauth_info['access_token']
+
+oauth_info.close()
 
 apiPath = "https://www.strava.com/api/v3/activities/"
 
+headers = {'Authorization': 'Bearer {}'.format(strava_access_token)}
+
 # todo:最新のアクティビティIDを取得できるように書き換える
 activity_id = "2969365131"
-
-# 外部ファイルからアクセストークンを読み込む
-# with open('somedir/strava_access_token.txt') as f:
-#    strava_access_token = f.read().strip()
-# またはdotenvなどから
-
-# todo:上記読み込んだアクセストークンに書き換える
-strava_access_token = "03380dd4e4099c24b89894ca8151471cfac87be2"
-headers = {'Authorization': 'Bearer {}'.format(strava_access_token)}
 
 # activityデータを取得する
 activity_data = requests.get(apiPath + activity_id, headers = headers).json()
