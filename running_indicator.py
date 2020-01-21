@@ -24,7 +24,8 @@ if oauth_info['expires_at'] < datetime.datetime.now().timestamp():
         'grant_type': 'refresh_token',
         'refresh_token': oauth_info['refresh_token']
     }
-    response = requests.post('https://www.strava.com/api/v3/oauth/token', data=authdata)
+    requestpost = requests.post('https://www.strava.com/api/v3/oauth/token', data=authdata)
+    response = requestpost.json()
     # 各種情報を更新する
     oauth_info['access_token'] = response['access_token']
     oauth_info['refresh_token'] = response['refresh_token']
