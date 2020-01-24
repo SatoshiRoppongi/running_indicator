@@ -64,17 +64,16 @@ print(len(lat_lon_arr))
 # todo:自動的にアップされた動画を読み込むように書き換える
 file_path = "movie.mp4"
 
-# ラップの平均ペース表記を、m.xx => m'ss に変換する
+# 秒を分に変換する => m'ss に変換する
 
 
 def change_time_format(time_string):
-    time = float(time_string)  # must be minuites
-    second = time * 60
-    m, s = divmod(second, 60)
+    time = float(time_string)  # must be sec
+    m, s = divmod(time, 60)
     return str(int(m)) + "'" + str(int(s))
 
 
-def annotate(clip, txt, text_color='red', fontsize=200, font='Xolonium-Bold', pos=(0.5, 0.5), relative=True):
+def annotate(clip, txt, text_color='red', fontsize=200, font='Xolonium-Bold', pos=(0.4, 0.4), relative=True):
     # Write a text at the bottom of the clip.
     txtclip = editor.TextClip(txt, fontsize=fontsize,
                               font=font, color=text_color)
@@ -95,23 +94,23 @@ laptime_history = []
 # splits_metric[-1]['elapsed_time'] = splits_metric[-1]['elapsed_time'] - ADJUSTMENT_END_TIME
 
 # 行間隔
-LINE_SPACING = 3
+LINE_SPACING = 60
 total_time_list = np.cumsum([split_info['elapsed_time']
                              for split_info in splits_metric])
 for i, split_info in enumerate(splits_metric):
     split_info['total_time'] = total_time_list[i]
-    text_info = {'pos': (5, 5 + i * LINE_SPACING)}
+    text_info = {'pos': (10, 10 + i * LINE_SPACING)}
     laptime_history.append(text_info)
 
 
 pprint.pprint(splits_metric)
 
 # todo: 以下定数は外だしにしたい
-DISPLAY_TIME = 5  # 10秒間表示する
-TIME_SPEED = 6  # 何倍速にするか。
+DISPLAY_TIME = 2  # 10秒間表示する
+TIME_SPEED = 32  # 何倍速にするか。
 FLASH_FREQ = 2  # 0.25  # 1秒間に何回点滅するか
 interval = 1 / FLASH_FREQ  # 点滅間隔(1回点滅するのにかかる時間)
-center_time_text = [((min(int(split_info['total_time']/TIME_SPEED), end_time), min(int(split_info['total_time']/TIME_SPEED) + DISPLAY_TIME, end_time)), change_time_format(str(split_info['average_speed'])))
+center_time_text = [((min(int(split_info['total_time']/TIME_SPEED), end_time), min(int(split_info['total_time']/TIME_SPEED) + DISPLAY_TIME, end_time)), change_time_format(str(split_info['elapsed_time'])))
                     for split_info in splits_metric]
 
 for i, time_text in enumerate(center_time_text):
@@ -180,11 +179,11 @@ for lap_text in laptime_history:
         break
 
     annotated_laptime_history_subclip = [annotate(video.subclip(
-        min(from_t, end_time), min(to_t, end_time)), txt, pos=lap_text['pos'], relative=False, fontsize=10)
+        min(from_t, end_time), min(to_t, end_time)), txt, pos=lap_text['pos'], relative=False, fontsize=60)
         for (from_t, to_t), txt in lap]
     video = editor.concatenate_videoclips(annotated_laptime_history_subclip)
 
 final_clip = video
 final_clip.write_videofile("movie_withSubtitle.mp4",
-                           threads=4, audio=False)
+                           threads=4, audio=False, fps=5)
 # final_clip.write_videofile("testVideo.mp4", fps=1)
