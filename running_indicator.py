@@ -11,6 +11,7 @@ import numpy as np
 import copy
 import shelve
 import settings
+import gizeh
 
 # カレントディレクトリにあるmy_tokensをオープンする
 oauth_info = shelve.open('my_tokens', writeback=True)

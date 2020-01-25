@@ -10,6 +10,8 @@ moviepy = "==1.0.0"
 polyline = "*"
 imagemagick = "*"
 python-dotenv = "*"
+plotly = "*"
+gizeh = "*"
 
 [requires]
 python_version = "3.7"
