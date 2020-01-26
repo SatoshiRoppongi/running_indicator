@@ -12,6 +12,7 @@ import copy
 import shelve
 import settings
 import gizeh
+import speed_mater as sm
 
 # カレントディレクトリにあるmy_tokensをオープンする
 oauth_info = shelve.open('my_tokens', writeback=True)
@@ -53,9 +54,30 @@ splits_metric = activity_data['splits_metric']
 # 緯度経度情報
 lat_lon_arr = polyline.decode(activity_data['map']['polyline'])
 
+pprint.pprint(lat_lon_arr)
 pprint.pprint(splits_metric)
 
-print(len(lat_lon_arr))
+dist_list = []
+lat_lon_from = lat_lon_arr[0]
+for lat_lon in lat_lon_arr[1:]:
+    lat_lon_to = lat_lon
+    distance = sm.google_distance(lat_lon_from, lat_lon_to)
+    dist_list.append(distance)
+    lat_lon_from = lat_lon_to
+
+elapsed_time = activity_data['elapsed_time']
+
+
+point_num = len(lat_lon_arr)
+unit_time = elapsed_time / point_num
+
+data_width = 50
+
+average_speed_list = []
+for i in range(len(dist_list) - data_width):
+    # 平均速度(& m/s を km/h に変換)
+    average_speed_list.append(3.6 *
+                              (sum(dist_list[i:i+data_width]))/(data_width * unit_time))
 
 # x = [point[0] for point in lat_lon_arr]
 # y = [point[1] for point in lat_lon_arr]
@@ -65,9 +87,37 @@ print(len(lat_lon_arr))
 # todo:自動的にアップされた動画を読み込むように書き換える
 file_path = "movie.mp4"
 
+
+# 速度メーター
+
+# スピードメータのパラメータ
+W, H = 128, 128
+R = 64
+
+duration = 50
+
+
+def make_frame(t):
+
+    surface = gizeh.Surface(W, H)
+    max_speed = max(average_speed_list)
+    c = np.pi / max_speed  # 係数
+
+    arc = gizeh.arc(r=R, a1=np.pi, a2=2 * np.pi, xy=(W / 2, H), fill=(1, 1, 1))
+    arc.draw(surface)
+
+    line = gizeh.polyline(
+        points=[(W/2, H), (W/2, H) + (gizeh.polar2cart(R, np.pi + c * average_speed_list[int(t)]))], stroke_width=4, stroke=(1, 0, 0), fill=(0, 1, 0))
+    line.draw(surface)
+    return surface.get_npimage()
+    # return surface.write_to_png("my_drawing.png")
+
+
+clip = editor.VideoClip(make_frame, duration=duration)
+clip.write_gif("speedmater.gif", fps=15, opt="OptimizePlus", fuzz=60)
+
+
 # 秒を分に変換する => m'ss に変換する
-
-
 def change_time_format(time_string):
     time = float(time_string)  # must be sec
     m, s = divmod(time, 60)
@@ -107,7 +157,7 @@ for i, split_info in enumerate(splits_metric):
 pprint.pprint(splits_metric)
 
 # todo: 以下定数は外だしにしたい
-DISPLAY_TIME = 2  # 10秒間表示する
+DISPLAY_TIME = 2  # 2秒間表示する
 TIME_SPEED = 32  # 何倍速にするか。
 FLASH_FREQ = 2  # 0.25  # 1秒間に何回点滅するか
 interval = 1 / FLASH_FREQ  # 点滅間隔(1回点滅するのにかかる時間)
